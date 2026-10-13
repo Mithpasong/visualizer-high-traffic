@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { post } from '../lib/lab';
 import { useI18n } from '../lib/i18n';
 
@@ -11,11 +11,10 @@ function useAction() {
     setBusy(true);
     setError(null);
     try {
-      await post(path, body);
-      return true;
+      return await post(path, body);
     } catch (e) {
       setError(e.code ? t(`err.${e.code}`) : e.message);
-      return false;
+      return null;
     } finally {
       setBusy(false);
     }
@@ -28,21 +27,40 @@ export function LoadPanel({ latest }) {
   const limits = latest?.limits;
   const load = latest?.load;
   const running = load?.running;
-  const [scenario, setScenario] = useState('product');
-  const [rps, setRps] = useState(100);
-  const [duration, setDuration] = useState(30);
+  const [form, setForm] = useState({ scenario: 'product', rps: 100, duration: 30 });
+  const [dirty, setDirty] = useState(false);
+  const [syncAfter, setSyncAfter] = useState(0);
   const [sql, setSql] = useState('SELECT count(*) FROM products WHERE price > 50000');
   const [token, setToken] = useState('');
   const { run, error, busy } = useAction();
+  const { scenario, rps, duration } = form;
 
-  const start = (override = {}) => run('/load/start', { scenario, rps, durationSec: duration, sql, token, ...override });
+  // 수정 중이 아니면 실행 중인 부하 설정(다른 방문자가 건 부하 포함)을 그대로 보여준다.
+  // 적용 직후에는 그 이후에 만들어진 스냅샷만 받아들여, 이전 값으로 되돌아가지 않게 한다.
+  useEffect(() => {
+    if (!running || dirty || !latest || latest.t <= syncAfter) return;
+    setForm({ scenario: load.scenario, rps: load.targetRps, duration: load.durationSec });
+  }, [running, dirty, syncAfter, latest, load?.scenario, load?.targetRps, load?.durationSec]);
+
+  const edit = (patch) => {
+    setDirty(true);
+    setForm((f) => ({ ...f, ...patch }));
+  };
+
+  const start = async (override = {}) => {
+    const res = await run('/load/start', { scenario, rps, durationSec: duration, sql, token, ...override });
+    if (res) {
+      setSyncAfter(res.t ?? 0);
+      setDirty(false);
+    }
+  };
 
   return (
     <div className="card">
       <h2>{t('load.title')}</h2>
       <label className="field">
         {t('load.scenario')}
-        <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
+        <select value={scenario} onChange={(e) => edit({ scenario: e.target.value })}>
           {limits?.scenarios.map((id) => (
             <option key={id} value={id} disabled={id === 'custom' && !limits.customSql}>
               {t(`scenario.${id}`)}
@@ -60,7 +78,7 @@ export function LoadPanel({ latest }) {
           max={limits?.maxRps ?? 1000}
           step={10}
           value={rps}
-          onChange={(e) => setRps(Number(e.target.value))}
+          onChange={(e) => edit({ rps: Number(e.target.value) })}
           onPointerUp={(e) => running && start({ rps: Number(e.currentTarget.value) })}
         />
       </label>
@@ -74,7 +92,7 @@ export function LoadPanel({ latest }) {
           max={limits?.maxDurationSec ?? 120}
           step={5}
           value={duration}
-          onChange={(e) => setDuration(Number(e.target.value))}
+          onChange={(e) => edit({ duration: Number(e.target.value) })}
         />
       </label>
       {scenario === 'custom' && (

@@ -110,6 +110,7 @@ export class LoadGenerator {
       running: this.running,
       scenario: this.opts?.scenario ?? null,
       targetRps: this.running ? this.opts.rps : 0,
+      durationSec: this.running ? this.opts.durationSec : 0,
       remainingSec: this.running ? Math.max(0, Math.ceil((this.endsAt - Date.now()) / 1000)) : 0,
       sentPerSec: w.sent / sec,
       okPerSec: w.ok / sec,
