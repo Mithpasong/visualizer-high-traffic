@@ -224,3 +224,16 @@ button.wide { width: 100%; margin-top: 4px; }
   .kpi .tip, .kpi:nth-child(3n) .tip { left: 0; right: auto; }
   .kpi:nth-child(even) .tip { left: auto; right: 0; }
 }
+
+/* 장애 주입: 라디오 + 지연 입력 + 적용 */
+.chaos-body { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.radios { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.radio { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.radio.on { color: var(--text); }
+.radio input[type='radio'] { margin: 0; accent-color: var(--green); cursor: pointer; }
+.delay-input { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
+.delay-input input {
+  width: 72px; padding: 4px 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; text-align: right;
+}
+.delay-input input:disabled { opacity: 0.45; }
+.chaos .error { margin-top: 6px; }
