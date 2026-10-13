@@ -181,19 +181,3 @@ export function ChaosPanel({ latest }) {
     </div>
   );
 }
-
-export function GuidePanel() {
-  const { t } = useI18n();
-  return (
-    <div className="card guide">
-      <h2>{t('guide.title')}</h2>
-      <ol>
-        {[1, 2, 3, 4].map((i) => (
-          <li key={i}>
-            <b>{t(`guide.${i}.title`)}</b> · {t(`guide.${i}.body`)}
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
