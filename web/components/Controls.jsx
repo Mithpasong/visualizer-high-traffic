@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { post } from '../lib/lab';
 import { useI18n } from '../lib/i18n';
 
@@ -11,9 +11,10 @@ function useAction() {
     setBusy(true);
     setError(null);
     try {
-      await post(path, body);
+      return await post(path, body);
     } catch (e) {
       setError(e.code ? t(`err.${e.code}`) : e.message);
+      return null;
     } finally {
       setBusy(false);
     }
@@ -26,21 +27,40 @@ export function LoadPanel({ latest }) {
   const limits = latest?.limits;
   const load = latest?.load;
   const running = load?.running;
-  const [scenario, setScenario] = useState('product');
-  const [rps, setRps] = useState(100);
-  const [duration, setDuration] = useState(30);
+  const [form, setForm] = useState({ scenario: 'product', rps: 100, duration: 30 });
+  const [dirty, setDirty] = useState(false);
+  const [syncAfter, setSyncAfter] = useState(0);
   const [sql, setSql] = useState('SELECT count(*) FROM products WHERE price > 50000');
   const [token, setToken] = useState('');
   const { run, error, busy } = useAction();
+  const { scenario, rps, duration } = form;
 
-  const start = (override = {}) => run('/load/start', { scenario, rps, durationSec: duration, sql, token, ...override });
+  // 수정 중이 아니면 실행 중인 부하 설정(다른 방문자가 건 부하 포함)을 그대로 보여준다.
+  // 적용 직후에는 그 이후에 만들어진 스냅샷만 받아들여, 이전 값으로 되돌아가지 않게 한다.
+  useEffect(() => {
+    if (!running || dirty || !latest || latest.t <= syncAfter) return;
+    setForm({ scenario: load.scenario, rps: load.targetRps, duration: load.durationSec });
+  }, [running, dirty, syncAfter, latest, load?.scenario, load?.targetRps, load?.durationSec]);
+
+  const edit = (patch) => {
+    setDirty(true);
+    setForm((f) => ({ ...f, ...patch }));
+  };
+
+  const start = async (override = {}) => {
+    const res = await run('/load/start', { scenario, rps, durationSec: duration, sql, token, ...override });
+    if (res) {
+      setSyncAfter(res.t ?? 0);
+      setDirty(false);
+    }
+  };
 
   return (
     <div className="card">
       <h2>{t('load.title')}</h2>
       <label className="field">
         {t('load.scenario')}
-        <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
+        <select value={scenario} onChange={(e) => edit({ scenario: e.target.value })}>
           {limits?.scenarios.map((id) => (
             <option key={id} value={id} disabled={id === 'custom' && !limits.customSql}>
               {t(`scenario.${id}`)}
@@ -58,7 +78,7 @@ export function LoadPanel({ latest }) {
           max={limits?.maxRps ?? 1000}
           step={10}
           value={rps}
-          onChange={(e) => setRps(Number(e.target.value))}
+          onChange={(e) => edit({ rps: Number(e.target.value) })}
           onPointerUp={(e) => running && start({ rps: Number(e.currentTarget.value) })}
         />
       </label>
@@ -72,7 +92,7 @@ export function LoadPanel({ latest }) {
           max={limits?.maxDurationSec ?? 120}
           step={5}
           value={duration}
-          onChange={(e) => setDuration(Number(e.target.value))}
+          onChange={(e) => edit({ duration: Number(e.target.value) })}
         />
       </label>
       {scenario === 'custom' && (
@@ -138,6 +158,16 @@ export function ConfigPanel({ latest }) {
   );
 }
 
+const CHAOS_MODES = ['down', 'latency', 'up'];
+const MIN_DELAY = 50;
+const MAX_DELAY = 5000;
+
+function proxyMode(p) {
+  if (!p) return null;
+  if (!p.enabled) return 'down';
+  return p.latencyMs ? 'latency' : 'up';
+}
+
 function proxyState(p, t) {
   if (!p) return [t('proxy.unknown'), ''];
   if (!p.enabled) return [t('proxy.down'), 'bad'];
@@ -145,55 +175,74 @@ function proxyState(p, t) {
   return [t('proxy.ok'), 'good'];
 }
 
-export function ChaosPanel({ latest }) {
+function ChaosTarget({ name, label, defaultDelay, proxy, run, busy }) {
   const { t } = useI18n();
-  const { run, error } = useAction();
-  const target = (name, label, latency) => {
-    const [state, tone] = proxyState(latest?.proxies?.[name], t);
-    return (
-      <div className="chaos">
-        <div className="chaos-head">
-          <b>{label}</b>
-          <span className={`badge ${tone}`}>{state}</span>
-        </div>
-        <div className="row">
-          <button className="danger" onClick={() => run('/chaos', { target: name, action: 'down' })}>
-            {t('chaos.down')}
-          </button>
-          <button onClick={() => run('/chaos', { target: name, action: 'latency', ms: latency })}>
-            {t('chaos.latency', { ms: latency })}
-          </button>
-          <button onClick={() => run('/chaos', { target: name, action: 'up' })}>{t('chaos.up')}</button>
-        </div>
-      </div>
-    );
+  // 사용자가 고치는 중일 때만 draft가 있다. 없으면 서버의 현재 상태를 그대로 보여준다.
+  const [draft, setDraft] = useState(null);
+  const current = proxyMode(proxy);
+  const mode = draft?.mode ?? current ?? 'up';
+  const delay = draft?.delay ?? String(proxy?.latencyMs || defaultDelay);
+  const delayMs = Number(delay);
+  const delayValid = Number.isInteger(delayMs) && delayMs >= MIN_DELAY && delayMs <= MAX_DELAY;
+  const changed = mode !== current || (mode === 'latency' && delayMs !== proxy?.latencyMs);
+  const [state, tone] = proxyState(proxy, t);
+
+  const apply = async () => {
+    const body = mode === 'latency' ? { target: name, action: 'latency', ms: delayMs } : { target: name, action: mode };
+    if (await run('/chaos', body)) setDraft(null);
   };
 
   return (
-    <div className="card">
-      <h2>{t('chaos.title')}</h2>
-      {target('redis', 'Redis', 800)}
-      {target('postgres', 'PostgreSQL', 500)}
-      <button className="wide" onClick={() => run('/chaos', { action: 'reset' })}>
-        {t('chaos.resetAll')}
-      </button>
-      {error && <p className="error">{error}</p>}
+    <div className="chaos">
+      <div className="chaos-head">
+        <b>{label}</b>
+        <span className={`badge ${tone}`}>{state}</span>
+      </div>
+      <div className="chaos-body">
+        <div className="radios" role="radiogroup" aria-label={label}>
+          {CHAOS_MODES.map((m) => (
+            <label key={m} className={`radio ${mode === m ? 'on' : ''}`}>
+              <input type="radio" name={`chaos-${name}`} value={m} checked={mode === m} onChange={() => setDraft({ mode: m, delay })} />
+              {t(`chaos.mode.${m}`)}
+              {m === 'latency' && (
+                <span className="delay-input">
+                  <input
+                    type="number"
+                    min={MIN_DELAY}
+                    max={MAX_DELAY}
+                    step={50}
+                    value={delay}
+                    disabled={mode !== 'latency'}
+                    aria-label={t('chaos.delayLabel')}
+                    onChange={(e) => setDraft({ mode: 'latency', delay: e.target.value })}
+                  />
+                  ms
+                </span>
+              )}
+            </label>
+          ))}
+        </div>
+        <button className="primary" disabled={busy || !changed || (mode === 'latency' && !delayValid)} onClick={apply}>
+          {t('chaos.apply')}
+        </button>
+      </div>
+      {mode === 'latency' && !delayValid && <p className="error">{t('chaos.invalidDelay', { min: MIN_DELAY, max: MAX_DELAY })}</p>}
     </div>
   );
 }
 
-export function GuidePanel() {
+export function ChaosPanel({ latest }) {
   const { t } = useI18n();
+  const { run, error, busy } = useAction();
   return (
-    <div className="card guide">
-      <h2>{t('guide.title')}</h2>
-      <ol>
-        {[1, 2, 3, 4].map((i) => (
-          <li key={i}>
-            <b>{t(`guide.${i}.title`)}</b> · {t(`guide.${i}.body`)}
-          </li>
-        ))}
-      </ol>
+    <div className="card">
+      <h2>{t('chaos.title')}</h2>
+      <ChaosTarget name="redis" label="Redis" defaultDelay={800} proxy={latest?.proxies?.redis} run={run} busy={busy} />
+      <ChaosTarget name="postgres" label="PostgreSQL" defaultDelay={500} proxy={latest?.proxies?.postgres} run={run} busy={busy} />
+      <button className="wide" disabled={busy} onClick={() => run('/chaos', { action: 'reset' })}>
+        {t('chaos.resetAll')}
+      </button>
+      {error && <p className="error">{error}</p>}
     </div>
   );
 }

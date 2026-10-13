@@ -35,13 +35,30 @@ code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
 .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
 
-.layout { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
-aside { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 12px; }
-.content { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-@media (max-width: 1000px) {
-  .layout { grid-template-columns: 1fr; }
-  aside { position: static; }
+/* 상단 조작 카드: 트래픽 발생 · 서버 전략 · 장애 주입 */
+.controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+@media (max-width: 1100px) {
+  .controls { grid-template-columns: repeat(2, 1fr); }
+  .controls > :last-child { grid-column: span 2; }
 }
+@media (max-width: 700px) {
+  .controls { grid-template-columns: 1fr; }
+  .controls > :last-child { grid-column: auto; }
+}
+.content { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+/* 조작 카드 컨트롤: 서버 전략 토글과 같은 초록 계열로 통일 */
+.controls {
+  --accent-soft: rgba(62, 207, 142, 0.1);
+  --accent-soft-hover: rgba(62, 207, 142, 0.2);
+  --accent-line: rgba(62, 207, 142, 0.4);
+}
+.controls button:not(.toggle) { background: var(--accent-soft); border-color: var(--accent-line); color: var(--green); }
+.controls button:not(.toggle):hover:not(:disabled) { background: var(--accent-soft-hover); border-color: var(--green); }
+.controls button.primary { background: var(--green); border-color: var(--green); color: #06140d; font-weight: 600; }
+.controls button.primary:hover:not(:disabled) { background: #5fe0a5; border-color: #5fe0a5; }
+.controls input[type='range'] { accent-color: var(--green); }
+.controls select:focus, .controls textarea:focus, .controls input:focus { outline: none; border-color: var(--green); }
 
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
 
@@ -86,9 +103,6 @@ button.wide { width: 100%; margin-top: 4px; }
 .chaos-head { display: flex; justify-content: space-between; margin-bottom: 8px; }
 .chaos button { padding: 5px 9px; font-size: 12px; }
 
-.guide ol { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
-.guide li { margin-bottom: 8px; }
-.guide b { color: var(--text); }
 
 .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--line); white-space: nowrap; }
 .badge.good { background: rgba(62, 207, 142, 0.15); color: var(--green); }
@@ -223,3 +237,16 @@ button.wide { width: 100%; margin-top: 4px; }
   .kpi .tip, .kpi:nth-child(3n) .tip { left: 0; right: auto; }
   .kpi:nth-child(even) .tip { left: auto; right: 0; }
 }
+
+/* 장애 주입: 라디오 + 지연 입력 + 적용 */
+.chaos-body { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.radios { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.radio { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.radio.on { color: var(--text); }
+.radio input[type='radio'] { margin: 0; accent-color: var(--green); cursor: pointer; }
+.delay-input { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
+.delay-input input {
+  width: 72px; padding: 4px 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; text-align: right;
+}
+.delay-input input:disabled { opacity: 0.45; }
+.chaos .error { margin-top: 6px; }

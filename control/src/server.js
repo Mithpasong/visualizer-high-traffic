@@ -273,7 +273,8 @@ app.post('/load/start', async (req, reply) => {
     durationSec: clamp(durationSec, 5, MAX_DURATION_SEC),
     sql,
   });
-  return { ok: true };
+  // 이 시각 이후의 스냅샷부터 새 설정이 반영되어 있다 (대시보드 폼 동기화용)
+  return { ok: true, t: Date.now() };
 });
 
 app.post('/load/stop', async () => {
@@ -311,6 +312,8 @@ app.post('/chaos', async (req, reply) => {
     logAction('CHAOS_DOWN', { target });
   } else if (action === 'latency') {
     const latency = clamp(ms, 50, 5000);
+    // 끊긴 상태에서 지연으로 바꾸는 경우를 위해 연결부터 살린다
+    await toxi(`/proxies/${target}`, { method: 'POST', body: JSON.stringify({ enabled: true }) });
     await toxi(`/proxies/${target}/toxics/latency`, { method: 'DELETE' });
     await toxi(`/proxies/${target}/toxics`, {
       method: 'POST',
