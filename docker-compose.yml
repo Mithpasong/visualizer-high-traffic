@@ -1,0 +1,78 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [web, control]
+
+  web:
+    build: ./web
+
+  control:
+    build: ./control
+    environment:
+      API_URL: http://api:3001
+      TOXIPROXY_URL: http://toxiproxy:8474
+      MAX_RPS: ${MAX_RPS:-1000}
+      MAX_DURATION_SEC: ${MAX_DURATION_SEC:-120}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      DOCKER_URL: http://docker-proxy:2375
+    depends_on: [api, toxiproxy, docker-proxy]
+
+  # 실험 대상 서버. 일부러 자원을 제한해서 병목이 잘 드러나게 한다.
+  api:
+    build: ./api
+    environment:
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+    cpus: "1.0"
+    mem_limit: 512m
+    depends_on:
+      postgres:
+        condition: service_healthy
+      toxiproxy:
+        condition: service_started
+
+  # 컨테이너 자원 조회 전용. Docker 소켓을 직접 노출하지 않고 GET /containers 만 허용한다.
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    environment:
+      CONTAINERS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  # api는 Redis/Postgres에 이 프록시를 거쳐 붙는다 → 지연·단절 주입
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    command: ["-host=0.0.0.0", "-config=/config/toxiproxy.json"]
+    volumes:
+      - ./infra/toxiproxy.json:/config/toxiproxy.json:ro
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lab
+      POSTGRES_PASSWORD: lab
+      POSTGRES_DB: lab
+    cpus: "1.0"
+    mem_limit: 512m
+    volumes:
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lab -d lab"]
+      interval: 3s
+      retries: 30
+
+volumes:
+  caddy_data:
+  pg_data:

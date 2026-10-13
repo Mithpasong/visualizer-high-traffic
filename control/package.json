@@ -1,0 +1,15 @@
+{
+  "name": "traffic-lab-control",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "fastify": "^4.28.1",
+    "ioredis": "^5.4.1",
+    "pg": "^8.12.0",
+    "undici": "^6.19.8",
+    "ws": "^8.18.0"
+  }
+}

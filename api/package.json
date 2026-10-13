@@ -1,0 +1,14 @@
+{
+  "name": "traffic-lab-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "fastify": "^4.28.1",
+    "ioredis": "^5.4.1",
+    "opossum": "^8.1.4",
+    "pg": "^8.12.0"
+  }
+}
