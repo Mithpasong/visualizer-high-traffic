@@ -47,6 +47,19 @@ code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size
 }
 .content { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 
+/* 조작 카드 컨트롤: 서버 전략 토글과 같은 초록 계열로 통일 */
+.controls {
+  --accent-soft: rgba(62, 207, 142, 0.1);
+  --accent-soft-hover: rgba(62, 207, 142, 0.2);
+  --accent-line: rgba(62, 207, 142, 0.4);
+}
+.controls button:not(.toggle) { background: var(--accent-soft); border-color: var(--accent-line); color: var(--green); }
+.controls button:not(.toggle):hover:not(:disabled) { background: var(--accent-soft-hover); border-color: var(--green); }
+.controls button.primary { background: var(--green); border-color: var(--green); color: #06140d; font-weight: 600; }
+.controls button.primary:hover:not(:disabled) { background: #5fe0a5; border-color: #5fe0a5; }
+.controls input[type='range'] { accent-color: var(--green); }
+.controls select:focus, .controls textarea:focus, .controls input:focus { outline: none; border-color: var(--green); }
+
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
 
 /* 컨트롤 */
