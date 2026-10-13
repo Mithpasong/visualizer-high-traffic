@@ -48,16 +48,6 @@ const dict = {
     'proxy.latency': '지연 {ms}ms',
     'proxy.ok': '정상',
 
-    'guide.title': '추천 실험',
-    'guide.1.title': '캐시의 효과',
-    'guide.1.body': '상품 조회 500 RPS → 캐시 끄기. DB 풀 대기와 p95가 어떻게 변하는지 보세요.',
-    'guide.2.title': '캐시 스탬피드',
-    'guide.2.body': 'Single-flight 끄고 캐시 비우기. MISS가 한꺼번에 DB로 몰립니다.',
-    'guide.3.title': 'Redis 장애',
-    'guide.3.body': 'Redis 연결 끊기. 서킷이 OPEN 되고 DB로 우회(fallback)합니다.',
-    'guide.4.title': '커넥션 풀 고갈',
-    'guide.4.body': '느린 쿼리 100 RPS. 풀 10개가 가득 차고 대기열이 쌓입니다.',
-
     'chart.throughput': '처리량 (req/s)',
     'chart.latency': '응답시간 (클라이언트 측)',
     'chart.cache': '캐시 (건/s)',
@@ -78,7 +68,6 @@ const dict = {
     'kpi.cacheOff': '캐시 꺼짐',
     'kpi.pool': 'DB 커넥션 풀',
     'kpi.waiting': '대기 {n}건',
-
 
     'ct.title': 'Docker 컨테이너 자원',
     'ct.service': '컨테이너',
@@ -221,16 +210,6 @@ const dict = {
     'proxy.latency': '{ms}ms delay',
     'proxy.ok': 'Healthy',
 
-    'guide.title': 'Try these experiments',
-    'guide.1.title': 'Cache impact',
-    'guide.1.body': 'Product lookup at 500 RPS, then turn the cache off. Watch DB pool waits and p95.',
-    'guide.2.title': 'Cache stampede',
-    'guide.2.body': 'Turn single-flight off and flush the cache. Misses rush to the DB at once.',
-    'guide.3.title': 'Redis outage',
-    'guide.3.body': 'Disconnect Redis. The circuit opens and requests fall back to the DB.',
-    'guide.4.title': 'Pool exhaustion',
-    'guide.4.body': 'Slow query at 100 RPS. All 10 pool connections fill up and a queue builds.',
-
     'chart.throughput': 'Throughput (req/s)',
     'chart.latency': 'Latency (client side)',
     'chart.cache': 'Cache (ops/s)',
@@ -251,7 +230,6 @@ const dict = {
     'kpi.cacheOff': 'Cache off',
     'kpi.pool': 'DB connection pool',
     'kpi.waiting': '{n} waiting',
-
 
     'ct.title': 'Docker container resources',
     'ct.service': 'Container',

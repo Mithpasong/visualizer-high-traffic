@@ -35,13 +35,17 @@ code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
 .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
 
-.layout { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
-aside { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 12px; }
-.content { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-@media (max-width: 1000px) {
-  .layout { grid-template-columns: 1fr; }
-  aside { position: static; }
+/* 상단 조작 카드: 트래픽 발생 · 서버 전략 · 장애 주입 */
+.controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+@media (max-width: 1100px) {
+  .controls { grid-template-columns: repeat(2, 1fr); }
+  .controls > :last-child { grid-column: span 2; }
 }
+@media (max-width: 700px) {
+  .controls { grid-template-columns: 1fr; }
+  .controls > :last-child { grid-column: auto; }
+}
+.content { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
 
@@ -86,9 +90,6 @@ button.wide { width: 100%; margin-top: 4px; }
 .chaos-head { display: flex; justify-content: space-between; margin-bottom: 8px; }
 .chaos button { padding: 5px 9px; font-size: 12px; }
 
-.guide ol { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
-.guide li { margin-bottom: 8px; }
-.guide b { color: var(--text); }
 
 .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--line); white-space: nowrap; }
 .badge.good { background: rgba(62, 207, 142, 0.15); color: var(--green); }
