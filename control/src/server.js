@@ -311,6 +311,8 @@ app.post('/chaos', async (req, reply) => {
     logAction('CHAOS_DOWN', { target });
   } else if (action === 'latency') {
     const latency = clamp(ms, 50, 5000);
+    // 끊긴 상태에서 지연으로 바꾸는 경우를 위해 연결부터 살린다
+    await toxi(`/proxies/${target}`, { method: 'POST', body: JSON.stringify({ enabled: true }) });
     await toxi(`/proxies/${target}/toxics/latency`, { method: 'DELETE' });
     await toxi(`/proxies/${target}/toxics`, {
       method: 'POST',
