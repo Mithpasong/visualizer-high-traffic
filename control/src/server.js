@@ -273,7 +273,8 @@ app.post('/load/start', async (req, reply) => {
     durationSec: clamp(durationSec, 5, MAX_DURATION_SEC),
     sql,
   });
-  return { ok: true };
+  // 이 시각 이후의 스냅샷부터 새 설정이 반영되어 있다 (대시보드 폼 동기화용)
+  return { ok: true, t: Date.now() };
 });
 
 app.post('/load/stop', async () => {
